@@ -199,6 +199,70 @@ const TOPS={
  tuft:["......#..#......",".......##.......",".......##......."],
  bud:["......####......",".....#....#.....","......####......",".......##......."]
 };
+/* ---------- Bebês: versão miniatura e fofinha de cada espécie ---------- */
+const BABY_BODY={round:[3,4,5,5,5,5,4,3],wide:[4,5,6,6,6,6,5],tall:[3,4,4,4,4,4,4,4,3],drop:[1,2,3,4,5,5,5,4],cone:[2,2,3,3,4,4,5,5],gem:[3,4,5,5,4,3],cloud:[4,5,6,5,6,6,5],box:[4,4,4,4,4,4,4,4],bell:[3,3,4,4,5,5,6,6],pear:[2,3,3,4,5,5,5,4],bean:[3,4,5,5,5,5,4,3],small:[3,4,4,4,4,3]};
+function makeBaby(spec){
+  const g=Array.from({length:16},()=>Array(16).fill(0));
+  const P=(x,y)=>{if(x>=0&&x<16&&y>=0&&y<16)g[y][x]=1};
+  const prof=BABY_BODY[spec.body],ex=spec.ex,feet=ex.includes("f");
+  const n=prof.length,bottom=feet?14:15,top=bottom-n+1;
+  const L=i=>8-prof[i],R=i=>7+prof[i];
+  for(let i=0;i<n;i++){
+    const y=top+i;
+    if(i===0||i===n-1){for(let x=L(i);x<=R(i);x++)P(x,y);continue}
+    P(L(i),y);P(R(i),y);
+    for(const j of[i-1,i+1]){if(L(j)-L(i)>1)for(let x=L(i);x<L(j);x++){P(x,y);P(15-x,y)}}
+  }
+  const t=top,l0=L(0),r0=R(0);
+  switch(spec.top){
+    case"sprout":P(6,t-1);P(9,t-1);P(7,t-2);P(8,t-2);P(7,t-1);P(8,t-1);break;
+    case"antenna":P(8,t-1);P(9,t-2);P(9,t-3);break;
+    case"twin":P(6,t-1);P(9,t-1);P(5,t-2);P(10,t-2);break;
+    case"cat":P(l0,t-1);P(r0,t-1);P(l0,t-2);P(r0,t-2);P(l0+1,t-1);P(r0-1,t-1);break;
+    case"bunny":for(let k=1;k<=3;k++){P(l0,t-k);P(r0,t-k)}break;
+    case"horns":P(l0-1,t);P(r0+1,t);P(l0-1,t-1);P(r0+1,t-1);break;
+    case"spiky":P(6,t-1);P(7,t-2);P(8,t-1);P(9,t-2);break;
+    case"bow":P(r0,t-1);P(r0+2,t-1);P(r0+1,t);P(r0,t+1);P(r0+2,t+1);break;
+    case"hat":for(let x=5;x<=10;x++)P(x,t-1);P(7,t-2);P(8,t-2);P(7,t-3);P(8,t-3);break;
+    case"curl":P(8,t-1);P(9,t-2);P(8,t-3);break;
+    case"halo":for(let x=6;x<=9;x++)P(x,t-2);break;
+    case"crown":for(let x=6;x<=9;x++)P(x,t-1);P(6,t-2);P(9,t-2);P(7,t-3);P(8,t-3);break;
+    case"prop":for(let x=5;x<=10;x++)P(x,t-2);P(7,t-1);P(8,t-1);break;
+    case"cap":for(let x=l0;x<=r0+2;x++)P(x,t);for(let x=l0;x<=r0;x++)P(x,t-1);break;
+    case"flower":P(8,t-1);P(8,t-3);P(7,t-2);P(9,t-2);break;
+    case"tuft":P(7,t-1);P(8,t-1);P(8,t-2);P(9,t-3);break;
+    case"bud":P(7,t-1);P(8,t-1);P(7,t-2);P(8,t-2);P(6,t-2);break;
+  }
+  const ey=top+Math.max(2,Math.floor(n/2)-1),w=prof[ey-top],dx=w>=5?2:1;
+  for(const s of[-1,1]){
+    const x=s<0?7-dx:8+dx;
+    switch(spec.eye){
+      case"tall":case"big":case"ring":P(x,ey);P(x,ey+1);break;
+      case"happy":P(x-1,ey+1);P(x,ey);P(x+1,ey+1);break;
+      case"line":P(x,ey);P(x+s,ey);break;
+      case"wink":if(s<0){P(x,ey);P(x-1,ey)}else{P(x,ey);P(x,ey+1)}break;
+      default:P(x,ey);
+    }
+  }
+  const tallEye=["tall","big","ring","happy"].includes(spec.eye),m=Math.min(bottom-1,ey+(tallEye?3:2));
+  switch(spec.mouth){
+    case"smile":P(6,m);P(7,m+1);P(8,m+1);P(9,m);break;
+    case"o":P(7,m);P(8,m);P(7,m+1);P(8,m+1);break;
+    case"line":for(let x=6;x<=9;x++)P(x,m);break;
+    case"beak":for(let x=6;x<=9;x++)P(x,m);P(7,m+1);P(8,m+1);break;
+    case"cat":P(6,m);P(7,m+1);P(8,m);P(9,m+1);break;
+    case"fang":P(7,m);P(8,m);P(9,m);P(9,m+1);break;
+    default:P(7,m);P(8,m);
+  }
+  if(ex.includes("c")){const y=ey+(tallEye?2:1);P(7-dx-1,y);P(8+dx+1,y)}
+  const mid=Math.min(n-2,ey-top+1);
+  if(ex.includes("a")){P(L(mid)-1,top+mid+1);P(R(mid)+1,top+mid+1)}
+  if(ex.includes("w")){P(L(mid)-1,top+mid);P(L(mid)-2,top+mid-1);P(R(mid)+1,top+mid);P(R(mid)+2,top+mid-1)}
+  if(ex.includes("t")){P(R(n-2)+1,bottom-1);P(R(n-2)+2,bottom-2)}
+  if(feet){P(6,15);P(9,15)}
+  return g.map(r=>r.map(v=>v?"#":".").join(""));
+}
+
 function makeSprite(spec,stage){
   const g=Array.from({length:16},()=>Array(16).fill(0));
   const P=(x,y)=>{if(x>=0&&x<16&&y>=0&&y<16)g[y][x]=1};
@@ -320,7 +384,7 @@ const SPECIES={
   adult:sp(["......####......",".....#....#.....","......####......",".......##.......","...##########...","..#..........#..",".#............#.",".#..##....##..#.",".#..##....##..#.",".#............#.","##...#....#...##",".#....####....#.",".#............#.","..#..........#..","...##########...","...##......##..."])}
 };
 SPECIES.broto.sleep=sp(makeSprite({body:"round",top:"sprout",eye:"dot",mouth:"smile",ex:"c"},"sleep"));
-for(const[id,name,body,top,eye,mouth,ex]of LIST){const s={body,top,eye,mouth,ex};SPECIES[id]={name,baby:sp(makeSprite(s,"baby")),child:sp(makeSprite(s,"child")),adult:sp(makeSprite(s,"adult")),sleep:sp(makeSprite(s,"sleep"))}}
+for(const[id,name,body,top,eye,mouth,ex]of LIST){const s={body,top,eye,mouth,ex};SPECIES[id]={name,baby:sp(makeBaby(s)),child:sp(makeSprite(s,"child")),adult:sp(makeSprite(s,"adult")),sleep:sp(makeSprite(s,"sleep"))}}
 const lcdName=n=>n.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase();
 
 const GHOST=sp(["....########....","................",".....######.....","....#......#....","...#.##..##.#...","...#........#...","#..#...##...#..#",".#.#........#.#.","..##........##..","...#........#...","...#........#...","...#.#.##.#.#...","...##.#..#.##..."]);
