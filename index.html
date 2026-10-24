@@ -1,0 +1,815 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bichinho de Bolso</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAABSElEQVR42u2bzRGCMBCFScYzPdCBFXi1JUugJa9WYAf2YAN6cgYYEDYkm5D99pzM8F7e258JcY0g3q/bpzlAtF3vtq51tYAOJcPXDH4LBlcr8K1q8FbAL2HzVsAvYfSN8fCWTn8Oq9MCf74+ROuf94tKUsQC1glwKeU/lL1U0nv2ogAIKMQCpVcBFAABihbYYgct2aMACIhsAWmGjxUxLIMFrBNwytHnlzBroAAICKgCJcg+9rdhAapAoX2+1ryABSAAAiCAKlDaiKrZaGEBLBDYkKSeHbT2YgEsIMjGe663NK/GGIexQMZGKHdjgwIgQBbBV2PcC2AB4xaINS/krixYwHwj1HZ9sv+EYlWHVBbjZ2ksMHg0ZenBxE/+IwVIHhvWAh4LTAmwoIIpRr+2oGbwoyQ4F7Ukxn+H6kM31gB+VQFHVYTk4L7dDqFNP6w62wAAAABJRU5ErkJggg==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap">
+<style>
+/* Layout: o navegador inteiro é o vidro do LCD — ícones impressos em cima e embaixo, matriz de pontos no meio, três botões no pé. */
+:root{
+  --glass:#e9e4c3;      /* fundo do LCD */
+  --glass-2:#f4efd4;    /* painel do seletor */
+  --ink:#22263a;        /* pixel aceso */
+  --ink-soft:rgba(34,38,58,.08);
+  --key:#ef5b3d;        /* botões A B C */
+  --key-edge:#b23a22;
+  --pixel:"Silkscreen", ui-monospace, "Courier New", monospace;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+body{
+  background:var(--glass);color:var(--ink);overflow:hidden;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  font-family:var(--pixel);-webkit-tap-highlight-color:transparent;user-select:none;
+}
+button{font-family:var(--pixel);color:var(--ink)}
+#swirl{position:fixed;inset:0;width:100%;height:100%;z-index:0}
+body::after{content:"";position:fixed;inset:0;z-index:0;background:#141828;opacity:0;transition:opacity .4s;pointer-events:none}
+body.night{--ink:#e9e4c3}
+body.night::after{opacity:.95}
+body.night .ic canvas{filter:invert(.92) sepia(.2)}
+#picker{--ink:#22263a;color:var(--ink)}
+#dev{--ink:#22263a;position:fixed;z-index:4;right:max(16px, env(safe-area-inset-right, 0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));
+  box-sizing:border-box;width:min(360px, calc(100vw - 32px));max-height:calc(100% - 32px);overflow-y:auto;background:var(--glass-2);color:var(--ink);
+  border:2px solid var(--ink);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px;box-shadow:4px 4px 0 rgba(34,38,58,.25);font-size:10px}
+@media (min-width:820px){body.dev-on main{margin-right:376px}}
+.dev-head{display:flex;align-items:center;gap:8px}
+.dev-head strong{font-weight:400;font-size:12px}
+.dev-head span{flex:1;opacity:.6;font-size:9px;font-variant-numeric:tabular-nums}
+.dev-x{background:none;border:0;font-size:18px;line-height:1;cursor:pointer;padding:2px 6px}
+.dev-group{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.dev-group span{width:100%;font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.55}
+.dev-group button{background:var(--glass);border:1px solid var(--ink);border-radius:6px;padding:6px 8px;font-size:10px;cursor:pointer}
+.dev-group button:hover{background:var(--ink);color:var(--glass)}
+.dev-group button.warn{border-color:var(--key-edge);color:var(--key-edge)}
+.dev-group button.warn:hover{background:var(--key-edge);color:#fff}
+.dev-group button:focus-visible,.dev-x:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+main{position:relative;z-index:1;height:100%;display:grid;grid-template-rows:auto 1fr auto auto;gap:8px;padding-block:12px}
+.icons{display:grid;grid-template-columns:repeat(4,1fr);width:100%;max-width:760px;margin:0 auto}
+.ic{background:none;border:0;padding:8px 0;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;opacity:.26;transition:opacity .12s}
+.ic canvas{width:clamp(34px,7vw,52px);height:auto;aspect-ratio:1;image-rendering:pixelated}
+.ic::after{content:"";width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-bottom:6px solid var(--ink);visibility:hidden}
+.icons.bottom .ic::after{order:-1;border-bottom:0;border-top:6px solid var(--ink)}
+.ic.sel{opacity:1}
+.ic.sel::after{visibility:visible}
+.ic.on{opacity:1}
+.ic:focus-visible{outline:2px dashed var(--ink);outline-offset:2px}
+.ic.att{cursor:default}
+.screen{position:relative;min-height:0;cursor:pointer}
+.screen canvas{position:absolute;inset:0;width:100%;height:100%}
+.keys{display:flex;justify-content:center;gap:clamp(24px,6vw,56px);padding-top:4px}
+.key{display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:0;cursor:pointer;font-size:12px}
+.key span{width:44px;height:44px;border-radius:50%;background:var(--key);box-shadow:inset 0 -4px 0 var(--key-edge),0 2px 0 rgba(34,38,58,.25);display:block;transition:transform .06s}
+.key:active span,.key.down span{transform:translateY(2px);box-shadow:inset 0 -2px 0 var(--key-edge)}
+.key:focus-visible span{outline:2px dashed var(--ink);outline-offset:3px}
+.foot{display:flex;justify-content:center;align-items:center;gap:14px;flex-wrap:wrap;font-size:10px;letter-spacing:.06em;margin-top:6px}
+.foot .hint{opacity:.55}
+@media (max-width:480px){.foot .hint{display:none}}
+.link{background:none;border:0;border-bottom:1px solid currentColor;padding:2px 0;font-size:10px;letter-spacing:.06em;cursor:pointer}
+.link:focus-visible{outline:2px dashed var(--ink);outline-offset:3px}
+@media (max-height:520px){.ic canvas{width:30px}.ic{padding:4px 0}.key span{width:36px;height:36px}}
+
+/* Seletor de bichinhos */
+#picker{position:fixed;inset:0;z-index:5;background:rgba(233,228,195,.94);backdrop-filter:blur(2px);overflow-y:auto;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.pk-wrap{max-width:980px;margin:0 auto;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));padding-block:20px 120px}
+.pk-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.pk-head h1{font-size:clamp(20px,3.6vw,30px);font-weight:400;margin:0;text-wrap:balance;letter-spacing:.02em}
+.pk-head p{margin:6px 0 0;font-size:11px;opacity:.65;letter-spacing:.04em}
+.pk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.tile{background:var(--glass-2);border:2px solid transparent;border-radius:10px;padding:10px 6px 8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:10px;letter-spacing:.04em}
+.tile canvas{width:100%;max-width:80px;aspect-ratio:1;height:auto}
+.tile:hover canvas{animation:hop .5s steps(2) infinite}
+.tile:hover,.tile:focus-visible{border-color:var(--ink);outline:none}
+.tile.cur{border-color:var(--key)}
+.tile small{font-size:9px;opacity:.55}
+@keyframes hop{50%{transform:translateY(-4px)}}
+@media (prefers-reduced-motion:reduce){.tile:hover canvas{animation:none}}
+.pk-confirm{position:fixed;left:0;right:0;bottom:0;background:var(--ink);color:var(--glass);display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;
+  padding-block:14px calc(14px + env(safe-area-inset-bottom,0px));padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px));font-size:12px}
+.pk-confirm button{border:0;border-radius:999px;padding:9px 16px;font-size:11px;cursor:pointer}
+.pk-confirm .yes{background:var(--key);color:#fff}
+.pk-confirm .no{background:var(--glass)}
+.btn{background:var(--ink);color:var(--glass);border:0;border-radius:999px;padding:9px 16px;font-size:11px;cursor:pointer}
+</style>
+
+<canvas id="swirl" aria-hidden="true"></canvas>
+<main>
+  <nav class="icons top" aria-label="Funções">
+    <button class="ic" data-i="0" aria-label="Comer"><canvas width="12" height="12"></canvas></button>
+    <button class="ic" data-i="1" aria-label="Luz"><canvas width="12" height="12"></canvas></button>
+    <button class="ic" data-i="2" aria-label="Brincar"><canvas width="12" height="12"></canvas></button>
+    <button class="ic" data-i="3" aria-label="Remédio"><canvas width="12" height="12"></canvas></button>
+  </nav>
+  <div class="screen" id="screen" aria-label="Tela do bichinho"><canvas id="lcd"></canvas></div>
+  <nav class="icons bottom" aria-label="Mais funções">
+    <button class="ic" data-i="4" aria-label="Banheiro"><canvas width="12" height="12"></canvas></button>
+    <button class="ic" data-i="5" aria-label="Status"><canvas width="12" height="12"></canvas></button>
+    <button class="ic" data-i="6" aria-label="Disciplina"><canvas width="12" height="12"></canvas></button>
+    <button class="ic att" data-i="7" aria-label="Atenção" tabindex="-1"><canvas width="12" height="12"></canvas></button>
+  </nav>
+  <div>
+    <div class="keys">
+      <button class="key" id="kA" aria-label="Botão A: escolher"><span></span>A</button>
+      <button class="key" id="kB" aria-label="Botão B: confirmar"><span></span>B</button>
+      <button class="key" id="kC" aria-label="Botão C: voltar"><span></span>C</button>
+      <button class="key" id="resetBtn" aria-label="Reset: apagar e escolher outro bichinho"><span></span>RESET</button>
+    </div>
+    <div class="foot"><span class="hint">A escolhe · B confirma · C volta</span><button class="link" id="openPicker">Trocar bichinho</button><button class="link" id="devToggle" aria-expanded="false">Dev</button></div>
+  </div>
+</main>
+
+<aside id="dev" hidden aria-label="Painel de testes">
+  <div class="dev-head"><strong>Painel de testes</strong><span id="devInfo"></span><button class="dev-x" id="devClose" aria-label="Fechar painel">×</button></div>
+  <div class="dev-group"><span>Vida</span>
+    <button data-d="hatch">Chocar</button><button data-d="evolve">Evoluir</button><button data-d="age">+1 dia</button><button data-d="speed" id="devSpeed">Tempo 1x</button>
+  </div>
+  <div class="dev-group"><span>Necessidades</span>
+    <button data-d="hungry">Fome 0</button><button data-d="sad">Feliz 0</button><button data-d="full">Encher tudo</button><button data-d="call">Birra (chamada falsa)</button>
+  </div>
+  <div class="dev-group"><span>Banheiro</span>
+    <button data-d="urge">Vontade de cocô</button><button data-d="poop">Cocô no chão</button><button data-d="clean">Limpar</button>
+  </div>
+  <div class="dev-group"><span>Saúde e sono</span>
+    <button data-d="sick">Ficar doente</button><button data-d="cure">Curar</button><button data-d="sleep">Dormir</button><button data-d="wake">Acordar</button>
+  </div>
+  <div class="dev-group"><span>Fim</span>
+    <button data-d="die" class="warn">Morrer</button><button data-d="egg">Ovo novo</button><button data-d="reset" class="warn">Apagar tudo</button>
+  </div>
+</aside>
+
+<section id="picker" hidden aria-label="Escolher bichinho">
+  <div class="pk-wrap">
+    <div class="pk-head">
+      <div><h1>Escolha seu bichinho</h1><p id="pkSub">Toque em uma espécie para receber o ovo. Bebê, criança e adulto mudam de forma.</p></div>
+      <button class="btn" id="pkClose">Voltar ao bichinho</button>
+    </div>
+    <div class="pk-grid" id="pkGrid"></div>
+  </div>
+  <div class="pk-confirm" id="pkConfirm" hidden>
+    <span id="pkMsg"></span>
+    <button class="yes" id="pkYes">Trocar</button>
+    <button class="no" id="pkNo">Manter o atual</button>
+  </div>
+</section>
+
+<script>
+(()=>{
+const W=40,H=16,OX=4;
+const sp=rows=>{const w=Math.max(...rows.map(r=>r.length));const pts=[];rows.forEach((r,y)=>{for(let x=0;x<r.length;x++)if(r[x]==='#')pts.push([x,y])});return{w,h:rows.length,pts}};
+
+/* ---------- Gerador de espécies por partes ---------- */
+const BODIES={
+ round:[3,5,6,6,6,6,6,6,5,3],
+ tall:[3,4,5,5,5,5,5,5,5,5,4,3],
+ wide:[4,6,7,7,7,7,7,6,4],
+ pear:[3,4,4,5,5,6,6,7,7,6,4],
+ bell:[3,4,5,5,6,6,6,7,7,7],
+ box:[4,5,5,5,5,5,5,5,5,4],
+ bean:[3,4,5,5,6,6,6,6,5,4,3],
+ cone:[3,3,4,4,5,5,6,6,7,7],
+ small:[3,4,5,5,5,5,4,3],
+ gem:[3,4,5,6,6,5,4,3],
+ drop:[1,2,3,4,5,6,6,6,5,3],
+ cloud:[4,5,6,7,6,7,7,6,4]
+};
+const TOPS={
+ none:[],
+ sprout:[".....##..##.....","....#..##..#....",".....##..##.....",".......##......."],
+ antenna:[".......##.......",".......##.......","........#.......","........#......."],
+ twin:["...##......##...","....#......#....",".....#....#.....","......#..#......"],
+ cat:["....#......#....","....##....##....","....#.#..#.#...."],
+ bunny:["....##....##....","...#..#..#..#...","...#..#..#..#...","...#..#..#..#...","....#.#..#.#...."],
+ horns:["...#........#...","...##......##...","....##....##...."],
+ spiky:["...#...##...#...","....#..##..#....",".....#.##.#....."],
+ bow:["....##....##....","....#.#..#.#....","....#..##..#....","....#.#..#.#....","....##....##...."],
+ hat:["......####......","......#..#......","......#..#......","....########...."],
+ curl:[".......##.......","......#..#......","........#......."],
+ halo:["....########....","................"],
+ crown:["....#..##..#....","....##.####.#...","....########...."],
+ prop:[".....######.....",".......##......."],
+ cap:["....########....","...#..#..#..#...","..############.."],
+ flower:[".......##.......","......#..#......",".......##.......",".......#........"],
+ tuft:["......#..#......",".......##.......",".......##......."],
+ bud:["......####......",".....#....#.....","......####......",".......##......."]
+};
+function makeSprite(spec,stage){
+  const g=Array.from({length:16},()=>Array(16).fill(0));
+  const P=(x,y)=>{if(x>=0&&x<16&&y>=0&&y<16)g[y][x]=1};
+  let prof=BODIES[spec.body].slice(), dxMax=3, feet=spec.ex.includes("f");
+  if(stage==="child"){prof=prof.filter((_,i)=>i%4!==2).map(h=>Math.max(3,h-1));dxMax=2}
+  if(stage==="baby"){prof=[2,3,4,4,4,3,2];dxMax=1;feet=false}
+  if(stage==="sleep"){const k=6,p0=prof;prof=Array.from({length:k},(_,i)=>Math.min(7,p0[Math.round(i*(p0.length-1)/(k-1))]+1));feet=false}
+  const th=stage==="baby"?0:TOPS[spec.top].length;
+  while(prof.length+th+(feet?1:0)>16)prof.splice(prof.length>>1,1);
+  const n=prof.length,bottom=feet?14:15,top=bottom-n+1;
+  const L=i=>8-prof[i],R=i=>7+prof[i];
+  for(let i=0;i<n;i++){
+    const y=top+i;
+    if(i===0||i===n-1){for(let x=L(i);x<=R(i);x++)P(x,y);continue}
+    P(L(i),y);P(R(i),y);
+    for(const j of[i-1,i+1]){if(L(j)-L(i)>1)for(let x=L(i);x<L(j);x++){P(x,y);P(15-x,y)}}
+  }
+  // topo
+  if(stage!=="baby"){const t=TOPS[spec.top];t.forEach((r,k)=>{for(let x=0;x<16;x++)if(r[x]==="#")P(x,top-t.length+k)})}
+  // olhos
+  const ey=top+(n>=9?3:2),hw=prof[Math.min(n-1,ey-top)],dx=Math.max(1,Math.min(dxMax,hw-2));
+  const eye=stage==="baby"?"dot":stage==="sleep"?"shut":spec.eye;
+  for(const s of[-1,1]){
+    const x=s<0?7-dx:8+dx;
+    switch(eye){
+      case"dot":P(x,ey);break;
+      case"tall":P(x,ey);P(x,ey+1);break;
+      case"big":{const x2=x+(s<0?-1:1);P(x,ey);P(x2,ey);P(x,ey+1);P(x2,ey+1);break}
+      case"happy":P(x-1,ey+1);P(x,ey);P(x+1,ey+1);break;
+      case"line":P(x,ey);P(x+(s<0?-1:1),ey);break;
+      case"wink":if(s<0){P(x-1,ey);P(x,ey);}else{P(x,ey);P(x,ey+1)}break;
+      case"shut":P(x-1,ey);P(x,ey+1);P(x+1,ey);break;
+      case"ring":P(x,ey-1);P(x-1,ey);P(x+1,ey);P(x,ey+1);break;
+    }
+  }
+  // boca
+  const m=ey+(n>=10?3:2),mouth=stage==="baby"?"smile":stage==="sleep"?"tiny":spec.mouth;
+  switch(mouth){
+    case"smile":P(6,m);P(9,m);P(7,m+1);P(8,m+1);break;
+    case"o":P(7,m);P(8,m);P(7,m+1);P(8,m+1);break;
+    case"line":for(let x=6;x<=9;x++)P(x,m);break;
+    case"beak":for(let x=6;x<=9;x++)P(x,m);P(7,m+1);P(8,m+1);break;
+    case"cat":P(7,m);P(8,m);P(6,m+1);P(9,m+1);break;
+    case"fang":for(let x=6;x<=9;x++)P(x,m);P(9,m+1);break;
+    case"tiny":P(7,m);P(8,m);break;
+  }
+  if(stage!=="baby"){
+    if(stage!=="sleep"&&spec.ex.includes("c")){const r=m;P(8-hw+1,r);P(7+hw-1,r)}
+    if(stage==="sleep"){}
+    else if(spec.ex.includes("a")){const r=m-1,i=r-top;P(L(i)-1,r);P(R(i)+1,r);P(L(i)-1,r-1);P(R(i)+1,r-1)}
+    if(stage!=="sleep"&&spec.ex.includes("w")){const r=ey+1,i=r-top;P(L(i)-1,r);P(L(i)-2,r-1);P(L(i)-2,r);P(R(i)+1,r);P(R(i)+2,r-1);P(R(i)+2,r)}
+    if(stage!=="sleep"&&spec.ex.includes("t")){const r=bottom-2,i=r-top;P(R(i)+1,r);P(R(i)+2,r-1);P(R(i)+2,r-2)}
+  }
+  if(feet){const i=n-1,a=L(i)+1,b=R(i)-1;P(a,15);P(a+1,15);P(b,15);P(b-1,15)}
+  return g.map(r=>r.map(v=>v?"#":".").join(""));
+}
+const LIST=[
+ ["pipoca","Pipoca","cloud","none","dot","smile","f"],
+ ["bolota","Bolota","round","none","big","o","fc"],
+ ["fiapo","Fiapo","tall","antenna","dot","line","f"],
+ ["tampinha","Tampinha","small","hat","dot","smile","f"],
+ ["gotinha","Gotinha","drop","none","big","tiny",""],
+ ["nuvi","Nuvi","cloud","halo","happy","smile",""],
+ ["cocada","Cocada","box","spiky","dot","fang","f"],
+ ["pingo","Pingo","drop","curl","dot","smile","c"],
+ ["zuzu","Zuzu","bean","bunny","big","cat","fc"],
+ ["biscoito","Biscoito","wide","cat","dot","cat","f"],
+ ["faisca","Faísca","cone","spiky","tall","fang","a"],
+ ["jujuba","Jujuba","gem","bow","big","smile","c"],
+ ["pacoca","Paçoca","box","none","line","line","fa"],
+ ["rabisco","Rabisco","bean","curl","wink","smile","ft"],
+ ["trovao","Trovão","wide","horns","tall","fang","fa"],
+ ["mimo","Mimo","small","bow","happy","tiny","c"],
+ ["kiwi","Kiwi","round","tuft","dot","beak","fw"],
+ ["bambu","Bambu","tall","sprout","line","smile","fa"],
+ ["lumi","Lumi","drop","antenna","big","o","w"],
+ ["tico","Tico","small","tuft","dot","beak","fw"],
+ ["bolacha","Bolacha","wide","none","happy","smile","fc"],
+ ["quindim","Quindim","bell","crown","dot","smile",""],
+ ["farofa","Farofa","pear","spiky","wink","fang","f"],
+ ["chuchu","Chuchu","pear","sprout","dot","o","f"],
+ ["pitoco","Pitoco","small","cat","big","cat","ft"],
+ ["dengo","Dengo","round","bunny","happy","cat","fc"],
+ ["xodo","Xodó","bean","flower","happy","smile","c"],
+ ["pirulito","Pirulito","tall","prop","big","smile","f"],
+ ["muqui","Muqui","gem","horns","dot","fang","t"],
+ ["tatu","Tatu","box","cat","line","tiny","ft"],
+ ["brigadeiro","Brigadeiro","round","spiky","dot","smile","f"],
+ ["caju","Caju","pear","curl","big","smile","c"],
+ ["pudim","Pudim","bell","none","tall","o","c"],
+ ["fuba","Fubá","cone","cap","dot","smile","f"],
+ ["garoa","Garoa","cloud","antenna","line","tiny",""],
+ ["sereno","Sereno","bean","halo","line","smile","w"],
+ ["vagalume","Vagalume","small","twin","big","o","w"],
+ ["pimpao","Pimpão","box","crown","ring","smile","fa"],
+ ["tuim","Tuim","drop","tuft","dot","beak","w"],
+ ["coro","Coró","tall","twin","dot","cat","f"],
+ ["marola","Marola","wide","curl","happy","o","f"],
+ ["fuxico","Fuxico","gem","antenna","wink","cat","c"],
+ ["tapioca","Tapioca","cloud","bow","dot","cat",""],
+ ["pamonha","Pamonha","bell","sprout","happy","line","c"],
+ ["zefiro","Zéfiro","bean","prop","ring","o","f"],
+ ["orvalho","Orvalho","drop","flower","happy","smile","c"],
+ ["cometa","Cometa","cone","twin","big","fang","t"],
+ ["cristal","Cristal","gem","crown","dot","tiny",""],
+ ["canela","Canela","pear","cat","tall","smile","ft"],
+ ["mochi","Mochi","wide","bud","dot","tiny","c"]
+];
+
+/* ---------- Sprites ---------- */
+const EGG=sp([
+"......####......",".....#....#.....","....#......#....","....#.#..#.#....","...#..#..#..#...","...#........#...",
+"...#.##..##.#...","...#........#...","...#..#..#..#...","....#......#....","....#......#....",".....######....."]);
+
+const SPECIES={
+ broto:{name:"Broto",
+  baby:sp(["","","","","","","","","......####......",".....#....#.....","....#.#..#.#....","....#......#....","....#..##..#....",".....#....#.....","......####......",""]),
+  child:sp(["................",".....##..##.....","....#..##..#....",".....##..##.....",".......##.......","....########....","...#........#...","..#..........#..","..#..#....#..#..","..#..#....#..#..","..#..........#..","..#...#..#...#..","..#....##....#..","...#........#...","....########....","...##......##..."]),
+  adult:sp(["......####......",".....#....#.....","......####......",".......##.......","...##########...","..#..........#..",".#............#.",".#..##....##..#.",".#..##....##..#.",".#............#.","##...#....#...##",".#....####....#.",".#............#.","..#..........#..","...##########...","...##......##..."])}
+};
+SPECIES.broto.sleep=sp(makeSprite({body:"round",top:"sprout",eye:"dot",mouth:"smile",ex:"c"},"sleep"));
+for(const[id,name,body,top,eye,mouth,ex]of LIST){const s={body,top,eye,mouth,ex};SPECIES[id]={name,baby:sp(makeSprite(s,"baby")),child:sp(makeSprite(s,"child")),adult:sp(makeSprite(s,"adult")),sleep:sp(makeSprite(s,"sleep"))}}
+const lcdName=n=>n.normalize("NFD").replace(/[̀-ͯ]/g,"").toUpperCase();
+
+const GHOST=sp(["....########....","................",".....######.....","....#......#....","...#.##..##.#...","...#........#...","#..#...##...#..#",".#.#........#.#.","..##........##..","...#........#...","...#........#...","...#.#.##.#.#...","...##.#..#.##..."]);
+const POOP=sp(["....#...","...#....","..####..",".#....#.",".######.","#......#","########"]);
+const POOP2=sp(["...#....","....#...","..####..",".#....#.",".######.","#......#","########"]);
+const MINIPOOP=sp(["..#..",".###.","#####"]);
+const TOILET=sp([".....###",".....#.#",".....#.#","########","#......#",".#.....#","..#...#.","...###..","..#####."]);
+const SKULL=sp(["..####..",".#....#.","#.#..#.#","#......#",".#.##.#.","..#..#..","..####.."]);
+const MEAL=sp(["...##...","..#..#..",".#....#.",".#....#.","#......#","#.####.#","#.####.#","########"]);
+const FISH=sp(["..###...",".#...#.#","#.#...##","#.....##",".#...#.#","..###..."]);
+const APPLE=sp(["...#.##.","...#.#..",".###.##.","#......#","#......#","#......#",".#....#.","..####.."]);
+const ROCK=sp([".##.","####","####"]);
+const ICECREAM=sp(["..####..",".#..#.#.","#......#","#.#....#","########",".#.##.#.","..#..#..","...##..."]);
+const CROSS=sp(["..####..","..#..#..","###..###","#......#","#......#","###..###","..#..#..","..####.."]);
+const HEART=sp([".#.#.","#####","#####",".###.","..#.."]);
+const HEART0=sp([".#.#.","#.#.#","#...#",".#.#.","..#.."]);
+const Z1=sp(["###",".#.","###"]),Z2=sp(["####","..#.",".#..","####"]),Z3=sp(["#####","...#.","..#..",".#...","#####"]);
+const SPARK=sp(["..#..",".#.#.","#...#",".#.#.","..#.."]);
+
+const ICONS=[
+["#.#.#....#..","#.#.#...##..","#.#.#...##..","#####...##..",".###....##..","..#.....##..","..#.....#...","..#.....#...","..#.....#...","..#.....#...","..#.....#..."],
+["....####....","...#....#...","..#......#..","..#......#..","..#......#..","...#....#...","....#..#....","....####....","....####....","....####....",".....##....."],
+["....####....","..##....##..",".#.#....#.#.",".#..#..#..#.","#....##....#","#....##....#",".#..#..#..#.",".#.#....#.#.","..##....##..","....####...."],
+["............","............","............","#..#######..","#..#.#.#.#..","####.....###","#..#.....#..","#..#######..","............"],
+["#####.......","#...#.......","#...#.......","#####.......","#...#######.","#..........#",".#........#.","..#......#..","...######...","....#..#....","...######..."],
+["############","#..........#","#.##.......#","#..........#","#.#####....#","#..........#","#.########.#","#..........#","############"],
+["....####....","...#....#...","..#.#..#.#..","..#......#..","..#..##..#..","...#....#...","....####..#.","..........#.","..........#.","..........#.","............","..........#."],
+["...###......","..#...#...#.","..#...#..#..","...###...#..","..#####...#.",".#.###.#....","...#.#......","..#...#.....","..#...#....."]
+];
+
+/* Fonte 3x5 */
+const F={A:".#.#.#####.##.#",B:"##.#.###.#.###.",C:".###..#..#...##",D:"##.#.##.##.###.",E:"####..##.#..###",F:"####..##.#..#..",G:".###..#.##.#.##",H:"#.##.#####.##.#",I:"###.#..#..#.###",J:"..#..#..##.#.#.",K:"#.##.###.#.##.#",L:"#..#..#..#..###",M:"#.########.##.#",N:"##.#.##.##.##.#",O:".#.#.##.##.#.#.",P:"##.#.###.#..#..",Q:".#.#.##.###..##",R:"##.#.###.#.##.#",S:".###...#...###.",T:"###.#..#..#..#.",U:"#.##.##.##.####",V:"#.##.##.##.#.#.",W:"#.##.########.#",X:"#.##.#.#.#.##.#",Y:"#.##.#.#..#..#.",Z:"###..#.#.#..###",
+"0":"####.##.##.####","1":".#.##..#..#.###","2":"##...#.#.#..###","3":"##...#.#...###.","4":"#.##.####..#..#","5":"####..##...###.","6":".###..####.####","7":"###..#.#..#..#.","8":"####.#####.####","9":"####.####..###.",
+" ":"...............","!":".#..#..#.....#.","?":"##...#.#.....#.",".":".............#.",":":"....#.....#....","-":"......###......","<":"..#.#.#...#...#",">":"#...#...#.#.#..","/":"..#..#.#.#..#.."};
+
+/* ---------- Estado ---------- */
+const STAGES={
+ baby:{hunger:150,happy:180,poop:300,next:"child",at:300,sleeps:false,min:5,label:"BEBE"},
+ child:{hunger:240,happy:270,poop:420,next:"adult",at:2400,sleeps:true,min:10,label:"CRIANCA"},
+ adult:{hunger:300,happy:330,poop:480,next:null,sleeps:true,min:20,label:"ADULTO"}
+};
+const EGG_TIME=20, URGE=60, KEY="bichinho-de-bolso-v1";
+let S;
+function fresh(species){const now=Date.now();return{species:species||"broto",stage:"egg",stageAge:0,born:null,hunger:2,happy:2,disc:0,weight:5,poops:0,urge:false,sick:false,sickNeed:1,sickDoses:0,sickTime:0,starve:0,light:true,sleeping:false,mistakes:0,callSince:null,callCounted:false,fakeCall:false,dead:false,acc:{h:0,p:0,poop:0},last:now}}
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.stage&&SPECIES[s.species])return s}catch(e){}const f=fresh();f.unchosen=true;return f}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+S=load();
+
+let mode="main",sel=-1,cursor=0,page=0,frame=0,petX=12,anim=null,game=null,pendingAnim=null,newCall=false;
+
+/* ---------- Simulação (1 passo = 1 segundo) ---------- */
+function getSick(){S.sick=true;S.sickDoses=0;S.sickTime=0;S.sickNeed=Math.random()<.5?1:2}
+function die(){S.dead=true;S.callSince=null;S.fakeCall=false;S.urge=false}
+function evolve(to){S.stage=to;S.stageAge=0;S.weight=Math.max(S.weight,STAGES[to].min);pendingAnim="evolve"}
+function step(t){
+  if(S.dead||S.unchosen)return;
+  if(S.stage==="egg"){if(++S.stageAge>=EGG_TIME){S.stage="baby";S.stageAge=0;S.born=t;S.weight=5;pendingAnim="evolve"}return}
+  const P=STAGES[S.stage],hr=new Date(t).getHours(),night=P.sleeps&&(hr>=21||hr<7);
+  const want=night||(S.nap&&!S.light);
+  if(want!==S.sleeping){S.sleeping=want;if(!want){S.light=true;S.nap=false}}
+  if(!S.sleeping){
+    S.stageAge++;
+    if(++S.acc.h>=P.hunger){S.acc.h=0;if(S.hunger>0)S.hunger--}
+    if(++S.acc.p>=P.happy){S.acc.p=0;if(S.happy>0)S.happy--}
+    S.acc.poop++;
+    if(!S.urge&&S.acc.poop>=P.poop-URGE&&S.acc.poop<P.poop){S.urge=true;newCall=true}
+    if(S.acc.poop>=P.poop){S.acc.poop=0;S.urge=false;S.poops=Math.min(4,S.poops+1);if(S.poops>=3&&!S.sick&&Math.random()<.6)getSick()}
+    if(P.next&&S.stageAge>=P.at)evolve(P.next);
+    if(!S.fakeCall&&S.callSince==null&&S.stage!=="baby"&&S.disc<100&&Math.random()<1/600)S.fakeCall=true;
+  }
+  if(S.od>0&&++S.odT>=1800){S.od--;S.odT=0}
+  if(S.sick&&++S.sickTime>=2400)return die();
+  if(S.hunger===0){if(++S.starve>=14400)return die()}else S.starve=0;
+  const real=S.hunger===0||S.happy===0||(S.sleeping&&S.light);
+  if(real||S.fakeCall){
+    if(S.callSince==null){S.callSince=t;S.callCounted=false;newCall=true}
+    else if(!S.callCounted&&t-S.callSince>=180000){
+      S.callCounted=true;
+      if(!real){S.fakeCall=false;S.callSince=null}
+      else{S.mistakes++;if(!S.sick&&Math.random()<.25)getSick();if(S.mistakes>=15)return die()}
+    }
+  }else S.callSince=null;
+}
+function simulate(){
+  const now=Date.now();let n=Math.floor((now-S.last)/1000);
+  if(S.unchosen){S.last=now;return}
+  if(n>86400){S.last=now-86400000;n=86400}
+  for(let i=0;i<n;i++){S.last+=1000;step(S.last)}
+}
+
+/* ---------- Desenho na matriz ---------- */
+const buf=new Uint8Array(W*H);
+const px=(x,y)=>{if(x>=0&&x<W&&y>=0&&y<H)buf[y*W+x]=1};
+const blit=(s,ox,oy,cut=0,cutTop=0)=>{for(const[x,y]of s.pts){if(cut&&x>=s.w-cut)continue;if(y<cutTop)continue;px(ox+x,oy+y)}};
+const text=(str,x,y)=>{for(const ch of str){const g=F[ch]||F[" "];for(let i=0;i<15;i++)if(g[i]==="#")px(x+i%3,y+(i/3|0));x+=4}};
+const pet=()=>SPECIES[S.species][S.stage];
+const bob=()=>frame%2?-1:0;
+/* fedor: dois fios ondulados subindo */
+function stink(x,y,f){for(const dx of[0,3]){const a=(f+dx)%2;px(x+dx+a,y-1);px(x+dx+1-a,y-2);px(x+dx+a,y-3)}}
+function drawPoops(){
+  if(S.poops>0){blit(POOP,24,9);stink(26,9,frame)}
+  if(S.poops>=2){blit(POOP2,16,9);stink(18,9,frame+1)}
+}
+
+function drawMain(){
+  if(S.dead){blit(GHOST,12,frame%2?1:2);return}
+  if(S.stage==="egg"){blit(EGG,12+(eggTaps?(frame%2?-eggTaps:eggTaps):[0,-1,0,1][frame%4]),3);return}
+  if(S.sleeping){
+    blit(SPECIES[S.species].sleep,7,0);
+    const z=Math.floor(frame/2)%4; /* z, zZ, zZZ, pausa */
+    if(z>=0&&z<3)blit(Z1,24,10);
+    if(z>=1&&z<3)blit(Z2,28,5);
+    if(z===2)blit(Z3,33,0);
+    return}
+  let maxX=24;if(S.poops>0||S.urge||S.sick)maxX=8;if(S.poops>=2)maxX=0;
+  drawPoops();
+  if(S.urge){blit(TOILET,32,7);if(frame%2===0){blit(MINIPOOP,33,3);stink(33,3,frame>>1)}}
+  if(S.sick&&frame%2)blit(SKULL,32,0);
+  if(!anim){
+    if(S.urge){petX+=frame%2?1:-1}
+    else{const r=Math.random();if(r<.35)petX-=1+(Math.random()<.4);else if(r<.7)petX+=1+(Math.random()<.4)}
+  }
+  petX=Math.max(0,Math.min(maxX,petX));
+  blit(pet(),petX,S.urge?0:bob());
+}
+function drawAnim(){
+  const a=anim,t=a.t;
+  switch(a.type){
+    case"evolve": if(t%2===0)blit(S.stage==="egg"?EGG:pet(),12,S.stage==="baby"&&t<2?3:0); if(t<2&&t%2)blit(EGG,12,3);break;
+    case"eat":{const fd=a.food,c=Math.floor(t/2);if(c<4){fd.cut==="t"?blit(fd.s,4,8,0,c*2+(c?1:0)):blit(fd.s,4,8,c*3)}blit(pet(),17,bob());break}
+    case"refuse":blit(pet(),12+(t%2?-2:2),0);break;
+    case"med":{
+      const p=t<2?0:Math.min(1,(t-2)/7);
+      drawSyringe(3,4,p);
+      blit(pet(),t>=2&&t<9&&t%2?23:24,0);
+      if(t>=10){blit(SPARK,30,0);if(t%2)blit(SPARK,35,6)}
+      break}
+    case"flush":{
+      const wx=32-t*4;blit(TOILET,32,7);blit(pet(),0,0);
+      if(S.poops>0&&wx>24){blit(POOP,24,9);stink(26,9,t)}
+      if(S.poops>=2&&wx>16){blit(POOP2,16,9)}
+      for(let x=wx;x<wx+2;x++)for(let y=0;y<H;y++)if((y+t)%3)px(x,y);
+      break}
+    case"toilet":{
+      blit(TOILET,32,7);
+      const x=t<4?Math.round(a.from+(16-a.from)*t/3):16;
+      blit(pet(),x,t>=4&&t<8?(t%2):0);
+      if(t>=4&&t<7)blit(MINIPOOP,34,4+(t-4)*2);
+      if(t>=7&&t<11){for(let x2=33;x2<39;x2++)if((x2+t)%2)px(x2,9-(t%2))}
+      if(t>=10){blit(SPARK,26,1)}
+      break}
+    case"scold":blit(pet(),12+(t%2?-1:1),0);text(a.ok?"!":"?",33,2);break;
+    case"happy":blit(pet(),12,t%2?-2:0);if(t%2){blit(SPARK,3,2);blit(SPARK,32,4)}else{blit(SPARK,5,7);blit(SPARK,31,0)}break;
+  }
+}
+/* seringa grande: êmbolo empurra o remédio conforme p vai de 0 a 1 */
+function drawSyringe(ox,oy,p){
+  for(let x=ox+4;x<=ox+16;x++){px(x,oy);px(x,oy+6)}
+  for(let y=oy-1;y<=oy+7;y++)px(ox+4,y);
+  for(let y=oy;y<=oy+6;y++)px(ox+16,y);
+  for(let y=oy+2;y<=oy+4;y++)px(ox+17,y);
+  for(let x=ox+18;x<=ox+21;x++)px(x,oy+3);
+  for(let x=ox+6;x<=ox+15;x+=3)px(x,oy-1);
+  const hx=ox+5+Math.round(p*9);
+  for(let y=oy+1;y<=oy+5;y++)px(hx,y);
+  for(let x=hx+2;x<=ox+15;x++)for(let y=oy+2;y<=oy+4;y++)px(x,y);
+  const hd=hx-7;
+  for(let x=hd;x<hx;x++)px(x,oy+3);
+  for(let y=oy+1;y<=oy+5;y++)px(hd,y);
+  if(p>=1&&frame%2)px(ox+22,oy+2);
+}
+const FOODS=[{n:"COMIDA",s:MEAL,h:1,w:1},{n:"SORVETE",s:ICECREAM,cut:"t",joy:1,w:2},{n:"PEIXE",s:FISH,h:2,w:2},{n:"MACA",s:APPLE,h:1,w:0}];
+function menuItems(){return mode==="feed"?FOODS.map(f=>f.n):mode==="games"?["LADO","PULO"]:["ACESA","APAGADA"]}
+function drawMenu(){
+  const items=menuItems(),top=cursor&~1;
+  for(let k=0;k<2&&top+k<items.length;k++){const i=top+k,y=k?10:2;if(cursor===i)text(">",0,y);text(items[i],4,y)}
+  if(items.length>2){if(top+2<items.length){px(34,13);px(35,14);px(36,13)}if(top>0){px(34,1);px(35,0);px(36,1)}}
+  if(mode==="feed")blit(FOODS[cursor].s,32,4);
+  if(mode==="games")blit(cursor?ROCK:HEART,cursor?33:33,cursor?7:6);
+}
+function drawStatus(){
+  if(page<2){text(page?"FELIZ":"FOME",OX+1,1);const v=page?S.happy:S.hunger;for(let i=0;i<4;i++)blit(i<v?HEART:HEART0,OX+1+i*8,9);return}
+  if(page===2){const age=S.born?Math.floor((Date.now()-S.born)/86400000):0;text("IDADE "+age,OX+1,1);text("PESO "+S.weight+"G",OX,9);return}
+  if(page===3){text("DISC",OX+1,1);for(let x=OX+1;x<OX+31;x++){px(x,9);px(x,14)}for(let y=9;y<15;y++){px(OX+1,y);px(OX+30,y)}const w=Math.round(26*S.disc/100);for(let x=OX+3;x<OX+3+w;x++)for(let y=11;y<13;y++)px(x,y);return}
+  text(lcdName(SPECIES[S.species].name),0,1);text(S.stage==="egg"?"OVO":STAGES[S.stage].label,0,9);
+}
+function drawGame(){
+  const g=game;
+  if(g.phase==="wait"){blit(pet(),12,bob());if(frame%2){text("<",0,6);text(">",37,6)}}
+  else if(g.phase==="reveal"){blit(pet(),g.dir<0?0:24,0);const ox=g.dir<0?28:7;if(g.win)blit(HEART,ox,5);else text("X",ox+1,5)}
+  else{text(g.wins+" DE 5",OX+4,1);text(g.wins>=3?"VENCEU!":"PERDEU",OX+2,9)}
+}
+function render(){
+  buf.fill(0);
+  if(S.unchosen){blit(EGG,12+[0,-1,0,1][frame%4],3);if(frame%2)text("?",33,2);paint();return}
+  if(resetArm){text("RESET?",4,2);text("DE NOVO",4,10);paint();return}
+  if(anim)drawAnim();
+  else if(mode==="feed"||mode==="light"||mode==="games")drawMenu();
+  else if(mode==="jump")drawJump();
+  else if(mode==="status")drawStatus();
+  else if(mode==="game")drawGame();
+  else drawMain();
+  paint();
+}
+
+/* ---------- Pintura do LCD ---------- */
+const lcd=document.getElementById("lcd"),ctx=lcd.getContext("2d");
+function paint(){
+  const dpr=window.devicePixelRatio||1,cw=Math.round(lcd.clientWidth*dpr),ch=Math.round(lcd.clientHeight*dpr);
+  if(lcd.width!==cw||lcd.height!==ch){lcd.width=cw;lcd.height=ch}
+  ctx.clearRect(0,0,cw,ch);
+  const cell=Math.max(2,Math.floor(Math.min(cw/W,ch/H))),gap=Math.max(1,Math.round(cell*.12));
+  const ox=Math.floor((cw-cell*W)/2),oy=Math.floor((ch-cell*H)/2);
+  const dark=!S.light&&!S.dead&&!S.unchosen&&S.stage!=="egg"&&mode==="main"&&!anim;
+  document.body.classList.toggle("night",dark);
+  for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+    const on=buf[y*W+x];
+    ctx.fillStyle=dark?(on?"#f6f0cf":"rgba(233,228,195,.06)"):(on?"#22263a":"rgba(34,38,58,.07)");
+    ctx.fillRect(ox+x*cell,oy+y*cell,cell-gap,cell-gap);
+  }
+}
+function drawSwirl(){
+  const c=document.getElementById("swirl"),dpr=window.devicePixelRatio||1,w=innerWidth,h=innerHeight;
+  c.width=w*dpr;c.height=h*dpr;const g=c.getContext("2d");g.scale(dpr,dpr);
+  g.fillStyle="#e9e4c3";g.fillRect(0,0,w,h);
+  const bands=9,cols=["#f2df78","#a7d5cd","#f6efcf"];
+  for(let i=0;i<bands;i++){
+    g.beginPath();const base=(i+.5)*h/bands,amp=h/bands*.9,f=(2+i%3)*Math.PI/w,ph=i*1.7;
+    for(let x=-20;x<=w+20;x+=8){const y=base+Math.sin(x*f+ph)*amp+Math.sin(x*f*2.3+ph*2)*amp*.25;x<=-20?g.moveTo(x,y):g.lineTo(x,y)}
+    g.strokeStyle=cols[i%3];g.globalAlpha=.55;g.lineWidth=h/bands*.55;g.lineCap="round";g.stroke();
+  }
+  g.globalAlpha=1;
+}
+
+/* ---------- Ícones ---------- */
+const icBtns=[...document.querySelectorAll(".ic")];
+icBtns.forEach((b,i)=>{const c=b.querySelector("canvas").getContext("2d");c.fillStyle="#22263a";ICONS[i].forEach((r,y)=>{for(let x=0;x<r.length;x++)if(r[x]==="#")c.fillRect(x,y,1,1)})});
+function updateIcons(){
+  icBtns.forEach((b,i)=>b.classList.toggle("sel",i===sel));
+  icBtns[7].classList.toggle("on",(S.callSince!=null||S.urge)&&!S.dead&&frame%2===0);
+}
+
+/* ---------- Som ---------- */
+let audio=null;
+function unlock(){if(!audio){try{audio=new (window.AudioContext||window.webkitAudioContext)()}catch(e){}}if(audio&&audio.state==="suspended")audio.resume()}
+function beep(n=1,f=2200){if(!audio)return;for(let i=0;i<n;i++){const o=audio.createOscillator(),g=audio.createGain(),t=audio.currentTime+i*.14;o.type="square";o.frequency.value=f;g.gain.setValueAtTime(.04,t);g.gain.setValueAtTime(0,t+.07);o.connect(g).connect(audio.destination);o.start(t);o.stop(t+.08)}}
+
+/* ---------- Ações ---------- */
+function play(type,len,onEnd,extra){anim=Object.assign({type,t:0,len,onEnd},extra||{})}
+const busy=()=>S.stage==="egg"||S.dead||S.unchosen;
+function activate(i){
+  if(busy()){beep(1,900);return}
+  switch(i){
+    case 0: if(S.sleeping){beep(1,900);return}mode="feed";cursor=0;break;
+    case 1: mode="light";cursor=S.light?0:1;break;
+    case 2: if(S.sleeping||!S.light)return beep(1,900);if(S.sick)return play("refuse",4);mode="games";cursor=0;break;
+    case 3: if(S.sleeping)return beep(1,900);play("med",12,()=>{
+      if(S.sick){if(++S.sickDoses>=S.sickNeed){S.sick=false;S.sickTime=0}return}
+      S.od=(S.od||0)+1;S.odT=0;
+      if(S.od>=3){die();beep(3,600)}else play("refuse",4);
+    });break;
+    case 4:
+      if(S.sleeping)return beep(1,900);
+      if(S.urge&&S.poops===0){play("toilet",12,()=>{S.urge=false;S.acc.poop=0;play("happy",4)},{from:petX});}
+      else play("flush",9,()=>{S.poops=0;if(S.urge){S.urge=false;S.acc.poop=0}});
+      break;
+    case 5: mode="status";page=0;break;
+    case 6: if(S.sleeping)return beep(1,900);{const ok=S.fakeCall;play("scold",5,()=>{if(ok){S.disc=Math.min(100,S.disc+25);S.fakeCall=false;S.callSince=null}},{ok})}break;
+  }
+}
+function confirmMenu(){
+  if(mode==="feed"){
+    mode="main";
+    if(S.sick)return play("refuse",4);
+    const f=FOODS[cursor];
+    if(f.h&&S.hunger>=4)return play("refuse",4);
+    play("eat",8,()=>{if(f.h)S.hunger=Math.min(4,S.hunger+f.h);S.weight+=f.w;if(f.joy){S.happy=Math.min(4,S.happy+f.joy);play("happy",4)}},{food:f});
+  }else if(mode==="games"){
+    if(cursor===0){mode="game";game={round:0,wins:0,phase:"wait",t:0}}else startJump();
+  }else{
+    S.light=cursor===0;mode="main";
+    if(!S.light){S.nap=true;S.sleeping=true;S.callSince=null}
+    else{S.nap=false;const P=STAGES[S.stage],hr=new Date().getHours();if(!(P.sleeps&&(hr>=21||hr<7)))S.sleeping=false}
+  }
+}
+/* Jogo do pulo: pedras vêm da direita, B (ou tocar na tela) pula */
+let jump=null,jumpTimer=null;
+const JUMP_Y=[1,3,4,5,6,6,6,6,6,6,5,4,3,1];
+function startJump(){mode="jump";jump={obs:[],spawned:0,next:8,jt:-1,dodged:0,hits:0,flash:0,phase:"play",t:0};clearInterval(jumpTimer);jumpTimer=setInterval(jumpStep,90)}
+function doJump(){if(jump&&jump.phase==="play"&&jump.jt<0)jump.jt=0}
+function jumpHeight(){return jump.jt>=0?JUMP_Y[jump.jt]:0}
+function jumpStep(){
+  if(mode!=="jump"||!jump){clearInterval(jumpTimer);jumpTimer=null;return}
+  const j=jump;
+  if(j.phase==="result"){
+    if(++j.t>=30){clearInterval(jumpTimer);jumpTimer=null;const won=j.hits<=3;S.weight=Math.max(STAGES[S.stage].min,S.weight-1);mode="main";jump=null;if(won){S.happy=Math.min(4,S.happy+1);play("happy",4)}save();updateIcons()}
+    render();return}
+  if(j.jt>=0&&++j.jt>=JUMP_Y.length)j.jt=-1;
+  if(j.flash)j.flash--;
+  const h=jumpHeight(),me=new Set(SPECIES[S.species].baby.pts.map(([x,y])=>(x-1)+","+(y-h)));
+  for(const o of j.obs){
+    o.x--;
+    if(!o.hit&&ROCK.pts.some(([x,y])=>me.has((o.x+x)+","+(13+y)))){o.hit=true;j.hits++;j.flash=6;beep(1,700)}
+  }
+  j.obs=j.obs.filter(o=>{if(o.x<-4){if(!o.hit){j.dodged++;beep(1,2600)}return false}return true});
+  if(j.spawned<10&&--j.next<=0){j.obs.push({x:40,hit:false});j.spawned++;j.next=16+Math.floor(Math.random()*12)}
+  if(j.spawned>=10&&!j.obs.length){j.phase="result";j.t=0;beep(2,j.hits<=3?2600:1200)}
+  render();
+}
+function drawJump(){
+  const j=jump;
+  if(j.phase==="result"){text(`${10-j.hits} DE 10`,2,1);text(j.hits<=3?"VENCEU!":"PERDEU",2,9);return}
+  if(!(j.flash&&j.flash%2))blit(SPECIES[S.species].baby,-1,-jumpHeight());
+  for(const o of j.obs)blit(ROCK,o.x,13);
+  text(String(j.dodged).padStart(2," "),32,0);
+}
+function gameChoose(d){
+  const g=game;if(g.phase!=="wait")return;
+  g.dir=Math.random()<.5?-1:1;g.win=g.dir===d;if(g.win)g.wins++;g.phase="reveal";g.t=0;beep(1,g.win?2600:1200);
+}
+function press(k){
+  unlock();
+  if(!picker.hidden)return;
+  if(S.unchosen){openPicker();return}
+  if(anim)return;
+  if(S.dead){beep();if(k==="B")openPicker();return}
+  if(eggTap())return;
+  beep();
+  if(mode==="main"){
+    if(k==="A"){sel=(sel+1)%7}
+    else if(k==="B"){if(sel>=0)activate(sel)}
+    else sel=-1;
+  }else if(mode==="feed"||mode==="light"||mode==="games"){
+    if(k==="A")cursor=(cursor+1)%menuItems().length;else if(k==="B")confirmMenu();else mode="main";
+  }else if(mode==="status"){
+    if(k==="C")mode="main";else page=(page+1)%5;
+  }else if(mode==="game"){
+    if(k==="C"){mode="main";game=null}else gameChoose(k==="A"?-1:1);
+  }else if(mode==="jump"){
+    if(k==="C"){mode="main";jump=null}else doJump();
+  }
+  updateIcons();render();
+}
+
+/* ---------- Seletor ---------- */
+const picker=document.getElementById("picker"),grid=document.getElementById("pkGrid"),conf=document.getElementById("pkConfirm");
+let pending=null;
+function drawPreview(c,spr){
+  const g=c.getContext("2d"),s=5;c.width=c.height=16*s;
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){g.fillStyle="rgba(34,38,58,.07)";g.fillRect(x*s,y*s,s-1,s-1)}
+  g.fillStyle="#22263a";for(const[x,y]of spr.pts)g.fillRect(x*s,y*s,s-1,s-1);
+}
+Object.entries(SPECIES).forEach(([id,sp],i)=>{
+  const b=document.createElement("button");b.className="tile";b.dataset.id=id;b.setAttribute("aria-label",sp.name);
+  const c=document.createElement("canvas");drawPreview(c,sp.adult);
+  const n=document.createElement("span");n.textContent=sp.name;
+  const k=document.createElement("small");k.textContent="Nº "+String(i+1).padStart(2,"0");
+  b.append(c,n,k);b.addEventListener("click",()=>choose(id));grid.append(b);
+});
+function openPicker(){
+  conf.hidden=true;pending=null;
+  const live=!S.unchosen&&!S.dead;
+  document.getElementById("pkClose").hidden=!live;
+  document.getElementById("pkSub").textContent=S.dead?"Seu bichinho foi embora. Escolha a próxima espécie para receber um ovo novo.":"Toque em uma espécie para receber o ovo. Bebê, criança e adulto mudam de forma.";
+  grid.querySelectorAll(".tile").forEach(t=>t.classList.toggle("cur",live&&t.dataset.id===S.species));
+  picker.hidden=false;picker.scrollTop=0;
+}
+function closePicker(){picker.hidden=true;conf.hidden=true}
+function start(id){eggTaps=0;S=fresh(id);mode="main";sel=-1;anim=null;game=null;petX=12;save();closePicker();updateIcons();render()}
+function choose(id){
+  unlock();beep();
+  if(!S.unchosen&&!S.dead){
+    pending=id;document.getElementById("pkMsg").textContent=`Trocar ${SPECIES[S.species].name} por um ovo de ${SPECIES[id].name}? O atual vai embora.`;conf.hidden=false;
+  }else start(id);
+}
+document.getElementById("pkYes").addEventListener("click",()=>pending&&start(pending));
+document.getElementById("pkNo").addEventListener("click",()=>{conf.hidden=true;pending=null});
+document.getElementById("pkClose").addEventListener("click",closePicker);
+document.getElementById("openPicker").addEventListener("click",()=>{unlock();openPicker()});
+
+/* ---------- Painel de testes ---------- */
+const dev=document.getElementById("dev"),devT=document.getElementById("devToggle");
+let speed=1;
+function devOpen(v){dev.hidden=!v;document.body.classList.toggle("dev-on",v);requestAnimationFrame(render);devT.setAttribute("aria-expanded",String(v))}
+devT.addEventListener("click",()=>{devOpen(dev.hidden);devInfo()});
+document.getElementById("devClose").addEventListener("click",()=>devOpen(false));
+function hatch(){S.stage="baby";S.stageAge=0;S.born=Date.now();S.weight=5;pendingAnim="evolve"}
+const alive=()=>!S.unchosen&&!S.dead&&S.stage!=="egg";
+const DEV={
+  hatch(){if(S.stage==="egg"&&!S.unchosen&&!S.dead)hatch()},
+  evolve(){if(S.unchosen||S.dead)return;if(S.stage==="egg")return hatch();const n=STAGES[S.stage].next;if(n)evolve(n)},
+  age(){if(S.born)S.born-=86400000},
+  speed(){speed=speed===1?10:speed===10?60:1;document.getElementById("devSpeed").textContent="Tempo "+speed+"x"},
+  hungry(){if(alive())S.hunger=0},
+  sad(){if(alive())S.happy=0},
+  full(){if(alive()){S.hunger=4;S.happy=4;S.starve=0}},
+  call(){if(alive())S.fakeCall=true},
+  urge(){if(alive()&&!S.sleeping){S.urge=true;S.acc.poop=STAGES[S.stage].poop-URGE;newCall=true}},
+  poop(){if(alive()){S.poops=Math.min(4,S.poops+1);S.urge=false;S.acc.poop=0}},
+  clean(){S.poops=0;S.urge=false},
+  sick(){if(alive())getSick()},
+  cure(){S.sick=false;S.sickTime=0},
+  sleep(){if(alive()){S.light=false;S.nap=true;S.sleeping=true;S.urge=false}},
+  wake(){if(alive()){S.light=true;S.nap=false;S.sleeping=false}},
+  die(){if(alive()||S.stage==="egg")die()},
+  egg(){if(!S.unchosen){S=fresh(S.species)}},
+  reset(){try{localStorage.removeItem(KEY)}catch(e){}S=fresh();S.unchosen=true;devOpen(false);openPicker()}
+};
+dev.addEventListener("click",e=>{
+  const b=e.target.closest("[data-d]");if(!b)return;
+  unlock();beep(1,1800);
+  anim=null;game=null;jump=null;mode="main";sel=-1;
+  DEV[b.dataset.d]();
+  if(!S.unchosen)save();updateIcons();render();devInfo();
+});
+function devInfo(){
+  if(dev.hidden)return;
+  const st=S.unchosen?"sem bichinho":S.dead?"morto":S.stage==="egg"?"ovo":STAGES[S.stage].label.toLowerCase();
+  document.getElementById("devInfo").textContent=`${st} · fome ${S.hunger} · feliz ${S.happy} · cocô ${S.poops} · erros ${S.mistakes} · overdose ${S.od||0}/3`;
+}
+
+/* Três toques em qualquer botão chocam o ovo na hora */
+let eggTaps=0;
+function eggTap(){
+  if(S.stage!=="egg"||S.unchosen||S.dead)return false;
+  eggTaps++;beep(1,1600+eggTaps*300);
+  if(eggTaps>=3){eggTaps=0;hatch();save()}
+  render();return true;
+}
+/* Recomeçar: pede um segundo clique para confirmar */
+const resetBtn=document.getElementById("resetBtn");let resetArm=null;
+resetBtn.addEventListener("click",()=>{
+  unlock();
+  if(S.unchosen)return openPicker();
+  beep(1,1400);
+  if(!resetArm){resetArm=setTimeout(()=>{resetArm=null;render()},3000);render();return}
+  clearTimeout(resetArm);resetArm=null;
+  try{localStorage.removeItem(KEY)}catch(e){}
+  S=fresh();S.unchosen=true;anim=null;game=null;jump=null;mode="main";sel=-1;eggTaps=0;
+  updateIcons();render();openPicker();
+});
+
+/* ---------- Entradas ---------- */
+icBtns.forEach((b,i)=>b.addEventListener("click",()=>{
+  if(i===7)return;unlock();if(S.unchosen)return openPicker();if(anim)return;if(eggTap())return;
+  beep();sel=i;mode="main";game=null;jump=null;activate(i);updateIcons();render();
+}));
+[["kA","A"],["kB","B"],["kC","C"]].forEach(([id,k])=>document.getElementById(id).addEventListener("click",()=>press(k)));
+document.getElementById("screen").addEventListener("click",e=>{
+  if(S.unchosen)return openPicker();
+  unlock();if(!anim&&eggTap())return;
+  const r=e.currentTarget.getBoundingClientRect(),left=e.clientX-r.left<r.width/2,top=e.clientY-r.top<r.height/2;
+  if(mode==="game")return press(left?"A":"B");
+  if(mode==="jump")return press("B");
+  if(mode==="feed"||mode==="light"||mode==="games"){unlock();if(anim)return;beep();cursor=Math.min(menuItems().length-1,(cursor&~1)+(top?0:1));confirmMenu();updateIcons();render();return}
+  if(mode==="status"||S.dead)return press("B");
+});
+addEventListener("keydown",e=>{
+  if(e.target.closest&&e.target.closest("#dev"))return;
+  if((e.key==="r"||e.key==="R")&&picker.hidden){resetBtn.click();return}
+  if(e.key==="d"||e.key==="D"){if(picker.hidden){devOpen(dev.hidden);devInfo()}return}
+  if(!picker.hidden){if(e.key==="Escape"&&!document.getElementById("pkClose").hidden)closePicker();return}
+  if(e.repeat)return;const k=e.key.toLowerCase();let m=null;
+  if(["a","1","arrowleft"].includes(k))m="A";else if(["b","2","enter"," ","arrowright"].includes(k))m="B";else if(["c","3","escape","backspace"].includes(k))m="C";
+  if(!m)return;e.preventDefault();const el=document.getElementById("k"+m);el.classList.add("down");setTimeout(()=>el.classList.remove("down"),120);press(m);
+});
+
+/* ---------- Relógio ---------- */
+function tick(){
+  frame++;simulate();
+  if(speed>1&&!S.unchosen){for(let i=0;i<speed/2;i++)step(Date.now())}
+  devInfo();
+  if(newCall){newCall=false;beep(3,2400)}
+  if(pendingAnim&&!anim&&mode==="main"){play(pendingAnim,6);pendingAnim=null}
+  else if(anim){if(++anim.t>=anim.len){const f=anim.onEnd;anim=null;f&&f()}}
+  if(mode==="game"&&game&&!anim){
+    game.t++;
+    if(game.phase==="reveal"&&game.t>=3){game.round++;game.t=0;game.phase=game.round>=5?"result":"wait"}
+    else if(game.phase==="result"&&game.t>=5){const won=game.wins>=3;S.weight=Math.max(STAGES[S.stage]?.min||1,S.weight-1);mode="main";game=null;if(won){S.happy=Math.min(4,S.happy+1);play("happy",4)}}
+  }
+  updateIcons();render();
+  if(frame%10===0&&!S.unchosen)save();
+}
+addEventListener("resize",()=>{drawSwirl();render()});
+document.addEventListener("visibilitychange",()=>{if(document.hidden){if(!S.unchosen)save()}else{simulate();render()}});
+drawSwirl();simulate();updateIcons();render();
+if(S.unchosen)openPicker();
+setInterval(tick,500);
+})();
+</script>
+
+</html>
