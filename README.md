@@ -1,5 +1,7 @@
 # Bichinho virtual clone
 
+**▶ Jogue agora: https://willsn0w.github.io/bichinho-virtual-clone/**
+
 Bichinho virtual em tela de LCD pixelada, inspirado nos clones dos anos 90. É um único arquivo HTML: abra o `index.html` no navegador e pronto.
 
 ## Funções
